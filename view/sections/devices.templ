@@ -1,0 +1,15 @@
+package view
+
+import "github/Kelado/sonoff/view/layout"
+import "github/Kelado/sonoff/internal/basicr3"
+
+templ Devices(devices []basicr3.Switch) {
+	@layout.Base() {
+		<h1 class="pb-10 text-xl">Device Panel</h1>
+		<div class="lg:size-2/3 md:size-11/12 sm:size-11/12 p-5 shadow bg-slate-100 flex gap-5 flex-wrap">
+			for _, device := range devices {
+				@DeviceClosed(device)
+			}
+		</div>
+	}
+}

@@ -1,0 +1,10 @@
+view/**/*.txt 
+view/**/*.go
+
+tmp/
+
+static/output.css
+
+bin/
+
+.vscode/

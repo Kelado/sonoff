@@ -1,0 +1,24 @@
+package view 
+
+import (
+	"github/Kelado/sonoff/view/layout"
+	"github/Kelado/sonoff/internal/basicr3"
+)
+
+templ Homepage(device basicr3.Switch) {
+	@layout.Base() {
+		<div class="size-full flex flex-col justify-between items-center">
+			<div class="h-2/5 flex items-center justify-center">
+				if device.State.State == "off" {
+					@DeviceClosed(device)
+				} else {
+					@DeviceOpened(device)
+				}
+			</div>
+			<div>
+				@ScheduleButton()
+			</div>
+			@Logs()
+		</div>
+	}
+}

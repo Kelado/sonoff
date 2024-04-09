@@ -1,0 +1,22 @@
+package view 
+
+templ ScheduleForm(now string) {
+	<form hx-post="/schedule" class="flex flex-col items-center gap-5">
+		<input type="datetime-local" name="date-time" value={ now } id=""/>
+		<div>
+			<label class="inline-flex items-center cursor-pointer">
+				<input id="toggle" type="radio" name="action" value="off" class="sr-only peer hidden"/>
+				<span id="toggle-label" class="peer-checked:bg-red-400 ms-3 text-sm font-medium text-gray-900 p-4 rounded">OFF</span>
+			</label>
+			<label class="inline-flex items-center cursor-pointer">
+				<input id="toggle" type="radio" name="action" value="on" class="sr-only peer hidden" checked/>
+				<span id="toggle-label" class="peer-checked:bg-green-400 ms-3 text-sm font-medium text-gray-900 p-4 rounded">ON</span>
+			</label>
+		</div>
+		<input
+			type="submit"
+			value="Submit"
+			class="px-4 py-2 bg-slate-700 rounded text-white"
+		/>
+	</form>
+}
