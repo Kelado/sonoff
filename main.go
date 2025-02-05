@@ -2,55 +2,52 @@ package main
 
 import (
 	"log"
-	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 
-	"github/Kelado/sonoff/internal/basicr3"
-	"github/Kelado/sonoff/internal/controllers"
-	"github/Kelado/sonoff/internal/logs"
-	"github/Kelado/sonoff/internal/registry"
+	"github/Kelado/sonoff/src/basicr3"
+	"github/Kelado/sonoff/src/bot"
+	"github/Kelado/sonoff/src/registry"
+	"github/Kelado/sonoff/src/services"
+
+	"github.com/joho/godotenv"
 )
 
 // Commands to find device's network information
 // dns-sd -B _ewelink._tcp
 // ping HOSTNAME.local
 
-const (
-	ID   = "" // Device ID from mDNS
-	IP   = "" // Device IP
-	PORT = "" // Device port
+var (
+	ID   string // Device ID from mDNS
+	IP   string // Device IP
+	PORT string // Device port
 )
 
 func main() {
-	device := basicr3.NewSwitch(ID, "Bedroom", IP, PORT)
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+
+	ID = os.Getenv("THERMOSTAT_SWITCH_ID")     // Device ID from mDNS
+	IP = os.Getenv("THERMOSTAT_SWITCH_IP")     // Device IP
+	PORT = os.Getenv("THERMOSTAT_SWITCH_PORT") // Device port
+
+	device := basicr3.NewSwitch(ID, string(services.Thermostat), IP, PORT)
 	log.Println(device)
 
 	registry := registry.NewDeviceRegistry()
 	registry.Register(device)
 
-	logger := &logs.Logger{}
+	switchService := services.NewSwitchService(registry)
+	bot := bot.New(switchService)
+	bot.Start()
 
-	controller := controllers.NewController(registry, logger)
+	// Wait for termination
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
+	<-stop
 
-	mux := http.NewServeMux()
-
-	mux.Handle("GET /static/", http.FileServer(http.Dir(".")))
-
-	mux.HandleFunc("GET /", controller.HomePage)
-
-	mux.HandleFunc("POST /switch/{id}/on", controller.TurnOnDevice)
-	mux.HandleFunc("POST /switch/{id}/off", controller.TurnOffDevice)
-
-	mux.HandleFunc("GET /logs/last", controller.GetLastLogEntry)
-
-	mux.HandleFunc("GET /schedule/form", controller.ScheduleForm)
-	mux.HandleFunc("POST /schedule", controller.Schedule)
-
-	s := &http.Server{
-		Addr:    ":5001",
-		Handler: mux,
-	}
-
-	log.Println("Server started listening at Port" + s.Addr)
-	s.ListenAndServe()
-
+	bot.Stop()
 }

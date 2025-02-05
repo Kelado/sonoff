@@ -1,7 +1,7 @@
 package scheduler
 
 import (
-	"github/Kelado/sonoff/internal/basicr3"
+	"github/Kelado/sonoff/src/basicr3"
 	"log"
 	"time"
 )

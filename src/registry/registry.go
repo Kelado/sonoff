@@ -1,7 +1,7 @@
 package registry
 
 import (
-	"github/Kelado/sonoff/internal/basicr3"
+	"github/Kelado/sonoff/src/basicr3"
 )
 
 var INCR_INT = 0
@@ -22,6 +22,17 @@ func (dr *DeviceRegistry) Register(device *basicr3.Switch) {
 
 func (dr *DeviceRegistry) Get(id string) basicr3.Switch {
 	return dr.devices[id]
+}
+
+func (dr *DeviceRegistry) GetByName(name string) basicr3.Switch {
+	for _, s := range dr.devices {
+		if s.Name == name {
+			s.Sync()
+			return s
+		}
+	}
+	// TODO: return error
+	return basicr3.Switch{}
 }
 
 func (dr *DeviceRegistry) GetFirst() basicr3.Switch {
