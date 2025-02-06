@@ -9,18 +9,23 @@ import (
 )
 
 const (
-	TurnOn  = "turn_on"
-	TurnOff = "turn_off"
+	HourSelection   = "th_hour_selection"
+	MinuteSelection = "th_minute_selection"
+)
 
-	ScheduleStart   = "schedule_start"
-	HourSelection   = "hour_selection"
-	MinuteSelection = "minute_selection"
+// Interactions
+const (
+	TH_TurnOn   = "th_turn_on"
+	TH_TurnOff  = "th_turn_off"
+	TH_Schedule = "th_schedule"
 )
 
 var scheduleDate = struct {
 	hour   string
 	minute string
 }{}
+
+type InteractionResponseData discordgo.InteractionResponseData
 
 func (b *Bot) sendActionControlls(s *discordgo.Session, channelID string) {
 	embed := &discordgo.MessageEmbed{
@@ -35,19 +40,19 @@ func (b *Bot) sendActionControlls(s *discordgo.Session, channelID string) {
 				discordgo.Button{
 					Label:    "Turn ON",
 					Style:    discordgo.PrimaryButton,
-					CustomID: TurnOn,
+					CustomID: TH_TurnOn,
 					Emoji:    &discordgo.ComponentEmoji{Name: "🔥"},
 				},
 				discordgo.Button{
 					Label:    "Turn OFF",
 					Style:    discordgo.DangerButton,
-					CustomID: TurnOff,
+					CustomID: TH_TurnOff,
 					Emoji:    &discordgo.ComponentEmoji{Name: "❄️"},
 				},
 				discordgo.Button{
 					Label:    "Schedule your bath",
 					Style:    discordgo.SecondaryButton,
-					CustomID: ScheduleStart,
+					CustomID: TH_Schedule,
 					Emoji:    &discordgo.ComponentEmoji{Name: "📅"},
 				},
 			},
@@ -61,15 +66,13 @@ func (b *Bot) sendActionControlls(s *discordgo.Session, channelID string) {
 }
 
 func (b *Bot) actionHandler(s *discordgo.Session, i *discordgo.InteractionCreate) {
-	var response string
+	var response InteractionResponseData
 	switch i.MessageComponentData().CustomID {
-	case TurnOn:
-		b.switchService.TurnOnByName(services.Thermostat)
-		response = "✅ Lamp is now **ON**! 💡"
-	case TurnOff:
-		b.switchService.TurnOffByName(services.Thermostat)
-		response = "✅ Lamp is now **OFF**! 🕶️"
-	case ScheduleStart:
+	case TH_TurnOn:
+		response = b.turnOn()
+	case TH_TurnOff:
+		response = b.turnOff()
+	case TH_Schedule:
 		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseUpdateMessage,
 			Data: &discordgo.InteractionResponseData{
@@ -110,7 +113,9 @@ func (b *Bot) actionHandler(s *discordgo.Session, i *discordgo.InteractionCreate
 	case MinuteSelection:
 		minute := i.MessageComponentData().Values[0]
 		scheduleDate.minute = minute
-		response = "You want to go for a bath at " + scheduleDate.hour + ":" + minute
+		response = InteractionResponseData{
+			Content: "You want to go for a bath at " + scheduleDate.hour + ":" + minute,
+		}
 
 		targetTimeStr := scheduleDate.hour + ":" + scheduleDate.minute
 		location := time.Local
@@ -137,9 +142,7 @@ func (b *Bot) actionHandler(s *discordgo.Session, i *discordgo.InteractionCreate
 
 	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseUpdateMessage,
-		Data: &discordgo.InteractionResponseData{
-			Content: response,
-		},
+		Data: (*discordgo.InteractionResponseData)(&response),
 	})
 }
 
@@ -165,4 +168,18 @@ func generateMinuteOptions() []discordgo.SelectMenuOption {
 		})
 	}
 	return options
+}
+
+func (b *Bot) turnOff() InteractionResponseData {
+	b.switchService.TurnOffByName(services.Thermostat)
+	return InteractionResponseData{
+		Content: "❄️ Thermostat is now **OFF**!",
+	}
+}
+
+func (b *Bot) turnOn() InteractionResponseData {
+	b.switchService.TurnOnByName(services.Thermostat)
+	return InteractionResponseData{
+		Content: "🔥 Thermostat is now **ON**!",
+	}
 }
