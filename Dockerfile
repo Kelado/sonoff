@@ -14,7 +14,7 @@ FROM alpine:latest
 WORKDIR /app/
 
 COPY --from=builder /app/smart-home .
-COPY --from=builder /app/config.json .
+COPY --from=builder /app/.env .
 
 RUN chmod +x smart-home
 

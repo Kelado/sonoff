@@ -15,17 +15,19 @@ var (
 	GeneralChannelID    string
 )
 
+// Services
+var (
+	switchService *services.SwitchService
+)
+
 type Bot struct {
 	id      string
 	session *discordgo.Session
-
-	switchService *services.SwitchService
 }
 
-func New(switchService *services.SwitchService) *Bot {
-	return &Bot{
-		switchService: switchService,
-	}
+func New(switchSvc *services.SwitchService) *Bot {
+	switchService = switchSvc
+	return &Bot{}
 }
 
 func (b *Bot) Start() {
@@ -53,14 +55,15 @@ func (b *Bot) Start() {
 	b.id = u.ID
 	b.session.Identify.Intents = discordgo.IntentsGuildMessages | discordgo.IntentsMessageContent
 
-	b.session.AddHandler(b.actionHandler)
-	b.session.AddHandler(b.messageHandler)
-
 	err = b.session.Open()
 	if err != nil {
 		fmt.Println("Failed opening connection to Discord:", err)
 		return
 	}
+
+	b.session.AddHandler(baseInteractionDispacher)
+	registerCommands(b.session)
+
 	fmt.Println("Bot is now connected!")
 }
 
@@ -69,23 +72,12 @@ func (b *Bot) Stop() {
 	fmt.Println("Bot is now stopped!")
 }
 
-func (b *Bot) messageHandler(s *discordgo.Session, m *discordgo.MessageCreate) {
-	if m.Author.ID == b.id {
-		return
-	}
-
-	if m.ChannelID == ThermostatChannelId {
-		cmd := m.Content
-		switch cmd {
-		case "status":
-			isActive := b.switchService.IsActiveByName(services.Thermostat)
-			if isActive {
-				s.ChannelMessageSend(ThermostatChannelId, "thermostat is ON right now")
-			} else {
-				s.ChannelMessageSend(ThermostatChannelId, "thermostat is OFF right now")
-			}
-		default:
-			b.sendActionControlls(s, m.ChannelID)
-		}
+// This is gonna be a little messy, but it leaves everything else to be clean and modular
+func baseInteractionDispacher(s *discordgo.Session, i *discordgo.InteractionCreate) {
+	switch i.Type {
+	case discordgo.InteractionApplicationCommand:
+		commandHandler(s, i)
+	case discordgo.InteractionMessageComponent:
+		actionInteractionDispatcher(s, i)
 	}
 }

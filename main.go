@@ -17,7 +17,6 @@ import (
 // Commands to find device's network information
 // dns-sd -B _ewelink._tcp
 // ping HOSTNAME.local
-
 var (
 	ID   string // Device ID from mDNS
 	IP   string // Device IP
