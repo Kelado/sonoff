@@ -9,6 +9,7 @@ import (
 const (
 	CommandStatus = "status"
 	CommandAction = "action"
+	CommandTest   = "test"
 )
 
 // To add new command
@@ -23,11 +24,16 @@ var commands = []*discordgo.ApplicationCommand{
 		Name:        CommandAction,
 		Description: "Open thermostat controller",
 	},
+	{
+		Name:        CommandTest,
+		Description: "This is a test action command",
+	},
 }
 
 var commandHandlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
 	CommandStatus: handleCommandStatus,
 	CommandAction: handleCommandAction,
+	CommandTest:   handleCommandTest,
 }
 
 func commandHandler(s *discordgo.Session, i *discordgo.InteractionCreate) {

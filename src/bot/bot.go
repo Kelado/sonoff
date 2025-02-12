@@ -3,7 +3,9 @@ package bot
 import (
 	"fmt"
 	"github/Kelado/sonoff/src/services"
+	"log"
 	"os"
+	"time"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -61,6 +63,8 @@ func (b *Bot) Start() {
 		return
 	}
 
+	b.clearChannel(ThermostatChannelId)
+
 	b.session.AddHandler(baseInteractionDispacher)
 	registerCommands(b.session)
 
@@ -79,5 +83,43 @@ func baseInteractionDispacher(s *discordgo.Session, i *discordgo.InteractionCrea
 		commandHandler(s, i)
 	case discordgo.InteractionMessageComponent:
 		actionInteractionDispatcher(s, i)
+	}
+}
+
+func (b *Bot) clearChannel(channelId string) {
+	for {
+		messages, err := b.session.ChannelMessages(channelId, 100, "", "", "")
+		if err != nil {
+			log.Fatalf("Error fetching messages: %v", err)
+		}
+		if len(messages) == 0 {
+			fmt.Println("No more messages to delete!")
+			break
+		}
+
+		// Bulk delete if possible
+		if len(messages) > 1 {
+			var messageIDs []string
+			for _, msg := range messages {
+				messageIDs = append(messageIDs, msg.ID)
+			}
+			err = b.session.ChannelMessagesBulkDelete(channelId, messageIDs)
+			if err != nil {
+				log.Printf("Bulk delete failed, deleting individually: %v", err)
+				// If bulk delete fails, delete one by one
+				for _, msg := range messages {
+					b.session.ChannelMessageDelete(channelId, msg.ID)
+					time.Sleep(500 * time.Millisecond) // Avoid rate limits
+				}
+			}
+		} else {
+			// Delete single message
+			err := b.session.ChannelMessageDelete(channelId, messages[0].ID)
+			if err != nil {
+				log.Printf("Failed to delete message: %v", err)
+			}
+		}
+
+		time.Sleep(200 * time.Millisecond) // Rate limit handling
 	}
 }

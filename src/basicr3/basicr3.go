@@ -35,7 +35,7 @@ func NewSwitch(id, name, ip, port string) *Switch {
 
 	// s.SetPulseOff()
 
-	s.Sync()
+	// s.Sync()
 
 	return &s
 }

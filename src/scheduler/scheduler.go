@@ -6,8 +6,9 @@ import (
 	"time"
 )
 
-type Scheduler struct {
-}
+var JobManager Scheduler
+
+type Scheduler struct{}
 
 type Job struct {
 	Device *basicr3.Switch
@@ -15,10 +16,11 @@ type Job struct {
 	At     time.Time
 }
 
-func (j *Job) Run() {
+func (j *Job) run() {
 	go func() {
 		log.Println("Job: started")
-		timeUntilRun := j.At.Sub(time.Now())
+
+		timeUntilRun := time.Until(j.At)
 		if timeUntilRun > 0 {
 			time.Sleep(timeUntilRun)
 		}
@@ -27,10 +29,8 @@ func (j *Job) Run() {
 		switch j.Action {
 		case "on":
 			j.Device.SetOn()
-			break
 		case "off":
 			j.Device.SetOff()
-			break
 		default:
 			log.Println("Uknown action ", j.Action)
 		}
@@ -38,5 +38,17 @@ func (j *Job) Run() {
 }
 
 func (s *Scheduler) Schedule(job *Job) {
-	job.Run()
+	job.run()
 }
+
+func (s *Scheduler) ScheduleAction(at time.Time, action func()) {
+	go func() {
+		timeUntilRun := time.Until(at)
+		if timeUntilRun > 0 {
+			time.Sleep(timeUntilRun)
+		}
+
+		action()
+	}()
+}
+
