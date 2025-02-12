@@ -13,6 +13,7 @@ import (
 var config Config
 
 var (
+	GuildId             string
 	ThermostatChannelId string
 	GeneralChannelID    string
 )
@@ -33,6 +34,7 @@ func New(switchSvc *services.SwitchService) *Bot {
 }
 
 func (b *Bot) Start() {
+	GuildId = os.Getenv("GUILD_ID")
 	ThermostatChannelId = os.Getenv("THERMOSTAT_CHANNEL_ID")
 	GeneralChannelID = os.Getenv("GENERAL_CHANNEL_ID")
 
@@ -68,6 +70,9 @@ func (b *Bot) Start() {
 	b.session.AddHandler(baseInteractionDispacher)
 	registerCommands(b.session)
 
+	initCommunicator(b.session)
+	// communicator.WelcomeMessage()
+
 	fmt.Println("Bot is now connected!")
 }
 
@@ -93,7 +98,7 @@ func (b *Bot) clearChannel(channelId string) {
 			log.Fatalf("Error fetching messages: %v", err)
 		}
 		if len(messages) == 0 {
-			fmt.Println("No more messages to delete!")
+			fmt.Println("Channel is clean!")
 			break
 		}
 

@@ -10,7 +10,9 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
-const ()
+const (
+	DefaultOnDuration = 40 * time.Minute
+)
 
 // Interactions
 const (
@@ -147,7 +149,7 @@ func handleMinutesSelection(s *discordgo.Session, i *discordgo.InteractionCreate
 	targetTimeStr := scheduleDate.hour + ":" + scheduleDate.minute
 
 	response := InteractionResponseData{
-		Content: "You want to go for a bath at " + scheduleDate.hour + ":" + scheduleDate.minute,
+		Content: "Thermostat will be turned 🔥ON at " + scheduleDate.hour + ":" + scheduleDate.minute,
 	}
 	location := time.Local
 	currentTime := time.Now()
@@ -160,31 +162,21 @@ func handleMinutesSelection(s *discordgo.Session, i *discordgo.InteractionCreate
 		fmt.Errorf("WTF are you doing man")
 	}
 	durationUntilTarget := targetTime.Sub(currentTime)
-	fmt.Printf("Time until %s: %v\n", targetTime.Format("15:04"), durationUntilTarget)
-
-	fmt.Printf("Thermostat will open at: %v", targetTime)
+	fmt.Printf("Time until %s, %v\n", targetTime.Format(time.Kitchen), durationUntilTarget)
+	fmt.Printf("Thermostat will open at: %v\n", targetTime.Format(time.Kitchen))
 	scheduler.JobManager.ScheduleAction(targetTime, func() {
 		switchService.TurnOnByName(services.Thermostat)
-		// s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-		// 	Type: discordgo.InteractionResponseChannelMessageWithSource, // Immediate response
-		// 	Data: &discordgo.InteractionResponseData{
-		// 		Content: fmt.Sprintf("Thermostat just turned ON: %v", time.Now()), // The actual message
-		// 	}})
+		communicator.sendMessage(ThermostatChannelId, fmt.Sprintf("Thermostat just turned 🔥ON: %v", time.Now().Format(time.Kitchen)))
+		channelId := communicator.createClockChannel()
+		go communicator.updateClock(channelId)
 
-		// channelId := createClockChannel(s, i.GuildID)
-		// updateClock(s, channelId)
-
-		// closeAt := time.Now().Add(time.Second * 10)
-		// fmt.Printf("Thermostat will close at: %v", closeAt)
-		// scheduler.JobManager.ScheduleAction(closeAt, func() {
-		// 	switchService.TurnOffByName(services.Thermostat)
-		// 	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-		// 		Type: discordgo.InteractionResponseChannelMessageWithSource, // Immediate response
-		// 		Data: &discordgo.InteractionResponseData{
-		// 			Content: fmt.Sprintf("Thermostat just turned OFF: %v", time.Now()), // The actual message
-		// 		}})
-		// 	deleteClock(s, channelId)
-		// })
+		closeAt := time.Now().Add(DefaultOnDuration)
+		fmt.Printf("Thermostat will close at: %v\n", closeAt.Format(time.Kitchen))
+		scheduler.JobManager.ScheduleAction(closeAt, func() {
+			switchService.TurnOffByName(services.Thermostat)
+			communicator.sendMessage(ThermostatChannelId, fmt.Sprintf("Thermostat just turned ❄️OFF: %v", time.Now().Format(time.Kitchen)))
+			communicator.deleteClock(channelId)
+		})
 	})
 
 	respond(response, s, i)
@@ -211,56 +203,60 @@ func generateHourOptions() []discordgo.SelectMenuOption {
 
 func generateMinuteOptions() []discordgo.SelectMenuOption {
 	var options []discordgo.SelectMenuOption
-	// currentMinute := time.Now().Minute()
 
-	// startMinute := ((currentMinute / 10) + 1) * 10
+	// For some reason I can not start from minute < 10
 	startMinute := 10
-	if startMinute == 60 {
-		startMinute = 0
+	minuteNow := time.Now().Minute()
+	if minuteNow > startMinute {
+		if minuteNow%2 == 0 {
+			startMinute = minuteNow + 2
+		} else {
+			startMinute = minuteNow + 3
+		}
 	}
 
 	for m := startMinute; m < 60; m += 2 {
 		options = append(options, discordgo.SelectMenuOption{
-			Label: fmt.Sprintf("%02d", m),
-			Value: fmt.Sprintf("%02d", m),
+			Label: fmt.Sprintf("%02d", int(m)),
+			Value: fmt.Sprintf("%02d", int(m)),
 		})
 	}
 	return options
 }
 
-func createClockChannel(s *discordgo.Session, guildID string) string {
-	channel, err := s.GuildChannelCreate(guildID, "Clock Channel", discordgo.ChannelTypeGuildText)
-	if err != nil {
-		log.Println("Error creating channel:", err)
-		return ""
-	}
-	s.ChannelMessageSend(guildID, fmt.Sprintf("⏳ Clock started in <#%s>", channel.ID))
-	return channel.ID
-}
+// func createClockChannel(s *discordgo.Session, guildID string) string {
+// 	channel, err := s.GuildChannelCreate(guildID, "Clock Channel", discordgo.ChannelTypeGuildText)
+// 	if err != nil {
+// 		log.Println("Error creating channel:", err)
+// 		return ""
+// 	}
+// 	s.ChannelMessageSend(guildID, fmt.Sprintf("⏳ Clock started in <#%s>", channel.ID))
+// 	return channel.ID
+// }
 
-func updateClock(s *discordgo.Session, channelId string) {
-	ticker := time.NewTicker(time.Minute * 5)
-	defer ticker.Stop()
+// func updateClock(s *discordgo.Session, channelId string) {
+// 	ticker := time.NewTicker(time.Minute * 5)
+// 	defer ticker.Stop()
 
-	startTime := time.Now()
-	for range ticker.C {
-		elapsed := time.Since(startTime)
-		minutes := int(elapsed.Minutes())
-		seconds := int(elapsed.Seconds()) % 60
+// 	startTime := time.Now()
+// 	for range ticker.C {
+// 		elapsed := time.Since(startTime)
+// 		minutes := int(elapsed.Minutes())
+// 		seconds := int(elapsed.Seconds()) % 60
 
-		newName := fmt.Sprintf("⏳ %dm %ds", minutes, seconds)
-		_, err := s.ChannelEditComplex(channelId, &discordgo.ChannelEdit{Name: newName})
-		if err != nil {
-			log.Println("Error updating channel name:", err)
-		}
-	}
-}
+// 		newName := fmt.Sprintf("⏳ %dm %ds", minutes, seconds)
+// 		_, err := s.ChannelEditComplex(channelId, &discordgo.ChannelEdit{Name: newName})
+// 		if err != nil {
+// 			log.Println("Error updating channel name:", err)
+// 		}
+// 	}
+// }
 
-func deleteClock(s *discordgo.Session, channelId string) string {
-	channel, err := s.ChannelDelete(channelId)
-	if err != nil {
-		log.Println("Error creating channel:", err)
-		return ""
-	}
-	return channel.ID
-}
+// func deleteClock(s *discordgo.Session, channelId string) string {
+// 	channel, err := s.ChannelDelete(channelId)
+// 	if err != nil {
+// 		log.Println("Error creating channel:", err)
+// 		return ""
+// 	}
+// 	return channel.ID
+// }
