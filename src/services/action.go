@@ -32,6 +32,7 @@ func (s *ActionService) AddRepeatedEveryDay(a *Action) {
 
 			log.Println("Action " + a.Name + " will run again at " + nextRun.String())
 			timeUntilRun := time.Until(nextRun)
+			log.Println("Action " + a.Name + " will wait for " + timeUntilRun.String())
 			time.Sleep(timeUntilRun)
 
 			// Execute the action
