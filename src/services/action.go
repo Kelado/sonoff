@@ -26,8 +26,7 @@ func (s *ActionService) AddRepeatedEveryDay(a *Action) {
 
 			// If nextRun is in the past, schedule for tomorrow
 			if nextRun.Before(now) {
-				// nextRun = nextRun.Add(24 * time.Hour)
-				nextRun = nextRun.Add(1 * time.Minute)
+				nextRun = nextRun.Add(24 * time.Hour)
 			}
 
 			log.Println("Action " + a.Name + " will run again at " + nextRun.String())
