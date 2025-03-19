@@ -2,3 +2,5 @@ services:
   smart_home:
     container_name: smart_home
     build: .
+    volumes:
+    - "/etc/localtime:/etc/localtime:ro"

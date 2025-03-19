@@ -18,7 +18,4 @@ COPY --from=builder /app/.env .
 
 RUN chmod +x smart-home
 
-ENV TZ=Europe/Athens
-RUN ln -sf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
-
 CMD ["./smart-home"]
