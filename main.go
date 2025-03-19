@@ -40,8 +40,20 @@ func main() {
 	registry.Register(device)
 
 	switchService := services.NewSwitchService(registry)
+
 	bot := bot.New(switchService)
 	bot.Start()
+
+	// Register all cron jobs
+	actionManager := services.NewActionService()
+	actionManager.AddRepeatedEveryDay(&services.Action{
+		Name:   "close-forgotten-thermostat",
+		Hour:   1,
+		Minute: 0,
+		Action: func() {
+			switchService.TurnOffByName(services.Thermostat)
+		},
+	})
 
 	// Wait for termination
 	stop := make(chan os.Signal, 1)
