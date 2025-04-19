@@ -14,7 +14,7 @@ const (
 
 // To add new command
 //  1. Declare it below
-//  2. Register its handlerin commandHandlers
+//  2. Register its handler in commandHandlers
 var commands = []*discordgo.ApplicationCommand{
 	{
 		Name:        CommandStatus,

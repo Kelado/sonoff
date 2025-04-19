@@ -11,6 +11,9 @@ import (
 	"github/Kelado/sonoff/src/registry"
 	"github/Kelado/sonoff/src/services"
 
+	bot_actions "github/Kelado/sonoff/src/bot/actions"
+	"github/Kelado/sonoff/src/bot/communication"
+
 	"github.com/joho/godotenv"
 )
 
@@ -40,9 +43,10 @@ func main() {
 	registry.Register(device)
 
 	switchService := services.NewSwitchService(registry)
+	namedayService := services.NewNamedayService()
 
-	bot := bot.New(switchService)
-	bot.Start()
+	discordBot := bot.New(switchService)
+	discordBot.Start()
 
 	// Register all cron jobs
 	actionManager := services.NewActionService()
@@ -55,10 +59,29 @@ func main() {
 		},
 	})
 
+	actionManager.AddRepeatedEveryDay(&services.Action{
+		Name:   "clear-thermostat-channel",
+		Hour:   0,
+		Minute: 0,
+		Action: func() {
+			bot_actions.ClearChannel(discordBot.Session, bot.ThermostatChannelId)
+		},
+	})
+	actionManager.AddRepeatedEveryDay(&services.Action{
+		Name:   "clear-general-channel",
+		Hour:   0,
+		Minute: 0,
+		Action: func() {
+			bot_actions.ClearChannel(discordBot.Session, bot.GeneralChannelID)
+		},
+	})
+
+	communication.SendCelebratingNamesForToday(bot.GeneralChannelID, namedayService.GetCelebratingNamesForToday())
+
 	// Wait for termination
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
 	<-stop
 
-	bot.Stop()
+	discordBot.Stop()
 }
