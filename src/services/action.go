@@ -23,7 +23,7 @@ func (s *ActionService) AddRepeatedEveryDay(a *Action) {
 		for {
 			now := time.Now()
 			nextRun := time.Date(now.Year(), now.Month(), now.Day(), a.Hour, a.Minute, now.Second(), 0, now.Location())
-
+			
 			// If nextRun is in the past, schedule for tomorrow
 			if nextRun.Before(now) {
 				nextRun = nextRun.Add(24 * time.Hour)

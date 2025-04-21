@@ -68,15 +68,13 @@ func main() {
 		},
 	})
 	actionManager.AddRepeatedEveryDay(&services.Action{
-		Name:   "clear-general-channel",
+		Name:   "post-celebrating-names-for-today",
 		Hour:   0,
 		Minute: 0,
 		Action: func() {
-			bot_actions.ClearChannel(discordBot.Session, bot.GeneralChannelID)
+			communication.SendCelebratingNamesForToday(bot.GeneralChannelID, namedayService.GetCelebratingNamesForToday())
 		},
 	})
-
-	communication.SendCelebratingNamesForToday(bot.GeneralChannelID, namedayService.GetCelebratingNamesForToday())
 
 	// Wait for termination
 	stop := make(chan os.Signal, 1)
