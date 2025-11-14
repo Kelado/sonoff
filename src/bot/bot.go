@@ -12,14 +12,16 @@ import (
 var config Config
 
 var (
-	GuildId             string
-	ThermostatChannelId string
-	GeneralChannelID    string
+	GuildId               string
+	ThermostatChannelId   string
+	GeneralChannelID      string
+	ClassTrackerChannelID string
 )
 
 // Services
 var (
 	switchService *services.SwitchService
+	ipService     *services.IpService
 )
 
 type Bot struct {
@@ -27,8 +29,9 @@ type Bot struct {
 	Session *discordgo.Session
 }
 
-func New(switchSvc *services.SwitchService) *Bot {
+func New(switchSvc *services.SwitchService, ipService *services.IpService) *Bot {
 	switchService = switchSvc
+	ipService = ipService
 	return &Bot{}
 }
 
@@ -36,6 +39,7 @@ func (b *Bot) Start() {
 	GuildId = os.Getenv("GUILD_ID")
 	ThermostatChannelId = os.Getenv("THERMOSTAT_CHANNEL_ID")
 	GeneralChannelID = os.Getenv("GENERAL_CHANNEL_ID")
+	ClassTrackerChannelID = os.Getenv("CLASS_TRACKER_CHANNEL_ID")
 
 	config, err := ReadConfig()
 	if err != nil {

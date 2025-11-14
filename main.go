@@ -44,8 +44,9 @@ func main() {
 
 	switchService := services.NewSwitchService(registry)
 	namedayService := services.NewNamedayService()
+	ipService := services.NewIpService()
 
-	discordBot := bot.New(switchService)
+	discordBot := bot.New(switchService, ipService)
 	discordBot.Start()
 
 	// Register all cron jobs

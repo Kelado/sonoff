@@ -7,15 +7,20 @@ import (
 )
 
 const (
-	CommandStatus = "status"
-	CommandAction = "action"
-	CommandTest   = "test"
+	CommandStatus   = "status"
+	CommandAction   = "action"
+	CommandTest     = "test"
+	CommandPublicIP = "ip"
 )
 
-// To add new command
-//  1. Declare it below
-//  2. Register its handler in commandHandlers
-var commands = []*discordgo.ApplicationCommand{
+var classTrackerCommands = []*discordgo.ApplicationCommand{
+	{
+		Name:        CommandPublicIP,
+		Description: "Get the public IP address of the server",
+	},
+}
+
+var thermostatCommands = []*discordgo.ApplicationCommand{
 	{
 		Name:        CommandStatus,
 		Description: "Check the status of thermostat",
@@ -29,15 +34,23 @@ var commands = []*discordgo.ApplicationCommand{
 		Description: "This is a test action command",
 	},
 }
+var commands = append(classTrackerCommands, thermostatCommands...)
 
 var commandHandlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
-	CommandStatus: handleCommandStatus,
-	CommandAction: handleCommandAction,
-	CommandTest:   handleCommandTest,
+	CommandStatus:   handleCommandStatus,
+	CommandAction:   handleCommandAction,
+	CommandTest:     handleCommandTest,
+	CommandPublicIP: handleCommandGetPublicIp,
 }
 
 func commandHandler(s *discordgo.Session, i *discordgo.InteractionCreate) {
-	if i.ChannelID != ThermostatChannelId {
+	var actionPermissions = map[string][]*discordgo.ApplicationCommand{
+		ThermostatChannelId:   thermostatCommands,
+		ClassTrackerChannelID: classTrackerCommands,
+	}
+
+	availableCommands, ok := actionPermissions[i.ChannelID]
+	if !ok {
 		return
 	}
 
@@ -45,6 +58,19 @@ func commandHandler(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	if _, ok := commandHandlers[cmd]; !ok {
 		return
 	}
+
+	// Check if the command is available in this channel
+	commandAllowed := false
+	for _, availableCmd := range availableCommands {
+		if availableCmd.Name == cmd {
+			commandAllowed = true
+			break
+		}
+	}
+	if !commandAllowed {
+		return
+	}
+
 	commandHandlers[cmd](s, i)
 }
 
