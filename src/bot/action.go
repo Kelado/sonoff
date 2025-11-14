@@ -103,6 +103,14 @@ func turnOn(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	response := InteractionResponseData{
 		Content: "🔥 Thermostat is now **ON**!",
 	}
+
+	closeAt := time.Now().Add(DefaultOnDuration)
+	fmt.Printf("Thermostat will close at: %v\n", closeAt.Format(time.Kitchen))
+	scheduler.JobManager.ScheduleAction(closeAt, func() {
+		switchService.TurnOffByName(services.Thermostat)
+		communication.SendMessage(ThermostatChannelId, fmt.Sprintf("Thermostat just turned ❄️OFF: %v", time.Now().Format(time.Kitchen)))
+	})
+
 	respond(response, s, i)
 }
 
