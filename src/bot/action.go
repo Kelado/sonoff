@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	DefaultOnDuration = 40 * time.Minute
+	DefaultOnDuration = 60 * time.Minute // 60 minutes suites the winter needs
 )
 
 // Interactions
@@ -101,7 +101,7 @@ func turnOff(s *discordgo.Session, i *discordgo.InteractionCreate) {
 func turnOn(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	switchService.TurnOnByName(services.Thermostat)
 	response := InteractionResponseData{
-		Content: "🔥 Thermostat is now **ON**!",
+		Content: "🔥 Thermostat is now **ON**!\n You have " + DefaultOnDuration.String() + " until your bath.",
 	}
 
 	closeAt := time.Now().Add(DefaultOnDuration)
